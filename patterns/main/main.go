@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
-	patterns "github.com/mrityunjaygr8/cloud-native-go/patterns"
+	"github.com/mrityunjaygr8/cloud-native-go/patterns"
 )
 
 func failAfter(threshold int) patterns.Circuit {
@@ -43,10 +44,10 @@ func main() {
 	fmt.Println("Starting server at port 9000")
 	circ := failAfter(5)
 	breaker := patterns.Breaker(circ, 1)
+	debounce_first := patterns.DebounceFirst(circ, time.Second)
 	ctx := context.Background()
 
 	http.HandleFunc("/threshold", func(w http.ResponseWriter, r *http.Request) {
-
 		res, err := breaker(ctx)
 		resp := make(jsonObj)
 		if err != nil {
@@ -58,6 +59,21 @@ func main() {
 		resp["body"] = res
 		writeToJSON(w, resp)
 		return
+	})
+
+	http.HandleFunc("/debounce-first", func(w http.ResponseWriter, r *http.Request) {
+		res, err := debounce_first(ctx)
+		resp := make(jsonObj)
+		if err != nil {
+			resp["error"] = err.Error()
+			writeToJSON(w, resp)
+			return
+		}
+
+		resp["body"] = res
+		writeToJSON(w, resp)
+		return
+
 	})
 	if err := http.ListenAndServe(":9000", nil); err != nil {
 		log.Fatal(err)
