@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/mrityunjaygr8/cloud-native-go/patterns"
+	patterns "github.com/mrityunjaygr8/cloud-native-go/patterns"
 )
 
 func failAfter(threshold int) patterns.Circuit {
