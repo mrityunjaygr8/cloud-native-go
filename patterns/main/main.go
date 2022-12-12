@@ -26,6 +26,21 @@ func failAfter(threshold int) patterns.Circuit {
 	}
 }
 
+// func
+func failAfterEffector(threshold int) patterns.Effector {
+	count := 0
+
+	return func(ctx context.Context) (string, error) {
+		count++
+
+		if count < threshold {
+			return "", errors.New("INTENTIONAL FAIL!")
+		}
+
+		return "Success", nil
+	}
+}
+
 type jsonObj map[string]string
 
 func writeToJSON(w http.ResponseWriter, message jsonObj) {
@@ -43,9 +58,11 @@ func writeToJSON(w http.ResponseWriter, message jsonObj) {
 func main() {
 	fmt.Println("Starting server at port 9000")
 	circ := failAfter(5)
+	circEffector := failAfterEffector(2)
 	breaker := patterns.Breaker(circ, 1)
 	debounce_first := patterns.DebounceFirst(circ, time.Second)
 	debounce_last := patterns.DebounceLast(circ, time.Second)
+	retry := patterns.Retry(circEffector, 1, time.Second)
 	ctx := context.Background()
 
 	http.HandleFunc("/threshold", func(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +95,20 @@ func main() {
 	})
 	http.HandleFunc("/debounce-last", func(w http.ResponseWriter, r *http.Request) {
 		res, err := debounce_last(ctx)
+		resp := make(jsonObj)
+		if err != nil {
+			resp["error"] = err.Error()
+			writeToJSON(w, resp)
+			return
+		}
+
+		resp["body"] = res
+		writeToJSON(w, resp)
+		return
+
+	})
+	http.HandleFunc("/retry", func(w http.ResponseWriter, r *http.Request) {
+		res, err := retry(ctx)
 		resp := make(jsonObj)
 		if err != nil {
 			resp["error"] = err.Error()
