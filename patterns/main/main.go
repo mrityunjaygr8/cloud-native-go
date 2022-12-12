@@ -58,11 +58,12 @@ func writeToJSON(w http.ResponseWriter, message jsonObj) {
 func main() {
 	fmt.Println("Starting server at port 9000")
 	circ := failAfter(5)
-	circEffector := failAfterEffector(2)
+	circEffector := failAfterEffector(3)
 	breaker := patterns.Breaker(circ, 1)
 	debounce_first := patterns.DebounceFirst(circ, time.Second)
 	debounce_last := patterns.DebounceLast(circ, time.Second)
 	retry := patterns.Retry(circEffector, 1, time.Second)
+	throttle := patterns.Throttle(circEffector, 1, 1, time.Second)
 	ctx := context.Background()
 
 	http.HandleFunc("/threshold", func(w http.ResponseWriter, r *http.Request) {
@@ -109,6 +110,20 @@ func main() {
 	})
 	http.HandleFunc("/retry", func(w http.ResponseWriter, r *http.Request) {
 		res, err := retry(ctx)
+		resp := make(jsonObj)
+		if err != nil {
+			resp["error"] = err.Error()
+			writeToJSON(w, resp)
+			return
+		}
+
+		resp["body"] = res
+		writeToJSON(w, resp)
+		return
+
+	})
+	http.HandleFunc("/throttle", func(w http.ResponseWriter, r *http.Request) {
+		res, err := throttle(ctx)
 		resp := make(jsonObj)
 		if err != nil {
 			resp["error"] = err.Error()
