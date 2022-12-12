@@ -45,6 +45,7 @@ func main() {
 	circ := failAfter(5)
 	breaker := patterns.Breaker(circ, 1)
 	debounce_first := patterns.DebounceFirst(circ, time.Second)
+	debounce_last := patterns.DebounceLast(circ, time.Second)
 	ctx := context.Background()
 
 	http.HandleFunc("/threshold", func(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +64,20 @@ func main() {
 
 	http.HandleFunc("/debounce-first", func(w http.ResponseWriter, r *http.Request) {
 		res, err := debounce_first(ctx)
+		resp := make(jsonObj)
+		if err != nil {
+			resp["error"] = err.Error()
+			writeToJSON(w, resp)
+			return
+		}
+
+		resp["body"] = res
+		writeToJSON(w, resp)
+		return
+
+	})
+	http.HandleFunc("/debounce-last", func(w http.ResponseWriter, r *http.Request) {
+		res, err := debounce_last(ctx)
 		resp := make(jsonObj)
 		if err != nil {
 			resp["error"] = err.Error()
