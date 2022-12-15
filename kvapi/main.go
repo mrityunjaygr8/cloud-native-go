@@ -2,48 +2,18 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"sync"
+
+	"github.com/mrityunjaygr8/cloud-native-go/kvapi/store"
+	transactionlogger "github.com/mrityunjaygr8/cloud-native-go/kvapi/transactionLogger"
 
 	"github.com/gorilla/mux"
 )
 
-var store = struct {
-	sync.RWMutex
-	m map[string]string
-}{m: make(map[string]string)}
-
-func Put(key string, value string) error {
-	store.Lock()
-	store.m[key] = value
-	store.Unlock()
-
-	return nil
-}
-
-var ErrorNoSuchKey = errors.New("no such key")
-
-func Get(key string) (string, error) {
-	store.RLock()
-	value, ok := store.m[key]
-	store.RUnlock()
-
-	if !ok {
-		return "", ErrorNoSuchKey
-	}
-
-	return value, nil
-}
-
-func Delete(key string) error {
-	store.Lock()
-	delete(store.m, key)
-	store.Unlock()
-
-	return nil
-}
+var logger transactionlogger.TransactionLogger
 
 func helloMuxHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hello gorilla/mux\n"))
@@ -61,11 +31,13 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = Put(key, string(value))
+	err = store.Put(key, string(value))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	logger.WritePut(key, string(value))
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -74,10 +46,10 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
 
-	value, err := Get(key)
+	value, err := store.Get(key)
 
 	if err != nil {
-		if errors.Is(err, ErrorNoSuchKey) {
+		if errors.Is(err, store.ErrorNoSuchKey) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 
@@ -94,20 +66,53 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["key"]
 
-	err := Delete(key)
-
+	err := store.Delete(key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	logger.WriteDelete(key)
+
 	w.WriteHeader(http.StatusOK)
 
 }
 
+func initializeTransactionLog() error {
+	var err error
+
+	logger, err = transactionlogger.NewFileTransactionLogger("transaction.log")
+
+	if err != nil {
+		return fmt.Errorf("failed to create event logger: %w", err)
+	}
+
+	events, errors := logger.ReadEvents()
+
+	e, ok := transactionlogger.Event{}, true
+
+	for ok && err == nil {
+		select {
+		case err, ok = <-errors:
+		case e, ok = <-events:
+			switch e.EventType {
+			case transactionlogger.EventDelete:
+				err = store.Delete(e.Key)
+			case transactionlogger.EventPut:
+				err = store.Put(e.Key, e.Value)
+			}
+		}
+	}
+
+	logger.Run()
+
+	return err
+}
+
 func main() {
+	_ = initializeTransactionLog()
+
 	r := mux.NewRouter()
-	r.HandleFunc("/", helloMuxHandler)
 	r.HandleFunc("/v1/{key}", putHandler).Methods("PUT")
 	r.HandleFunc("/v1/{key}", getHandler).Methods("GET")
 	r.HandleFunc("/v1/{key}", deleteHandler).Methods("DELETE")
