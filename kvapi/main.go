@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 
 	"github.com/mrityunjaygr8/cloud-native-go/kvapi/store"
 	transactionlogger "github.com/mrityunjaygr8/cloud-native-go/kvapi/transactionLogger"
@@ -110,6 +112,25 @@ func initializeTransactionLog() error {
 }
 
 func main() {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+
+	defer func() {
+		signal.Stop(signalChan)
+		logger.Close()
+	}()
+
+	go func() {
+		select {
+		case <-signalChan:
+			log.Println("Exiting Gracefully")
+			logger.Close()
+		}
+
+		<-signalChan
+		log.Println("Exiting Immediately")
+		os.Exit(1)
+	}()
 	_ = initializeTransactionLog()
 
 	r := mux.NewRouter()
