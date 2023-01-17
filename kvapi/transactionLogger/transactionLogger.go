@@ -7,6 +7,7 @@ type TransactionLogger interface {
 	Err() <-chan error
 	ReadEvents() (<-chan Event, <-chan error)
 	Run()
+	Close()
 }
 
 type EventType byte

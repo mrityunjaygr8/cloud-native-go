@@ -3,7 +3,9 @@ package transactionlogger
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
+	"time"
 )
 
 type FileTransactionLogger struct {
@@ -11,6 +13,20 @@ type FileTransactionLogger struct {
 	errors       <-chan error
 	lastSequence uint64
 	file         *os.File
+}
+
+func (l *FileTransactionLogger) Close() {
+	log.Println("In close method of FileTransactionLogger")
+
+	for len(l.events) > 0 {
+		log.Println(fmt.Sprintf("Items still in channel: %d", len(l.events)))
+		time.Sleep(time.Millisecond * 250)
+	}
+
+	l.file.Sync()
+	l.file.Close()
+	log.Println("Exiting FileTransactionLogger")
+	os.Exit(0)
 }
 
 func (l *FileTransactionLogger) WritePut(key, value string) {
