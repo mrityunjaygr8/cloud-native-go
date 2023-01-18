@@ -1,0 +1,40 @@
+version: '3'
+
+dotenv: [".env"]
+
+tasks:
+  postgres:
+    cmds:
+      - docker run --name postgres -p 5432:5432 -e POSTGRES_USER=$DB_USER -e POSTGRES_PASSWORD=$DB_PASS -d postgres:alpine
+
+  createdb:
+    cmds:
+      - docker exec -it postgres createdb --username=$DB_USER --owner=$DB_USER $DB_NAME
+
+  dropdb:
+    cmds:
+      - docker exec -it postgres dropdb $DB_NAME
+
+  migrateup:
+    cmds:
+      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose up
+
+  migratedown:
+    cmds:
+      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose down
+
+  migrateup1:
+    cmds:
+      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose up 1
+
+  migratedown1:
+    cmds:
+      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose down 1
+
+  psql:
+    cmds:
+      - docker exec -it postgres psql -U $DB_USER $DB_NAME
+
+  test:
+    cmds:
+      - echo $TASK_YO
