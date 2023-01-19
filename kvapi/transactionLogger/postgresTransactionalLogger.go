@@ -8,6 +8,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 
 	. "github.com/go-jet/jet/v2/postgres"
 	table "github.com/mrityunjaygr8/cloud-native-go/kvapi/db/gen/kvapi/public/table"
@@ -119,11 +120,34 @@ type PostgresConfig struct {
 	Username string
 	DbName   string
 	Port     int
+	SslMode  string
 }
 
-func NewPostgresTransactionLogger(config PostgresConfig) (TransactionLogger, error) {
-	connStr := fmt.Sprintf("host=%s dbname=%s user=%s password=%s port=%d sslmode=disable",
-		config.Host, config.DbName, config.Username, config.Password, config.Port)
+func NewPostgresTransactionLogger() (TransactionLogger, error) {
+	viper.SetConfigFile(".env")
+	viper.SetConfigType("env")
+	viper.AutomaticEnv()
+
+	type Config struct {
+		DbName   string `mapstructure:"KVAPI_DB_NAME"`
+		Password string `mapstructure:"KVAPI_DB_PASS"`
+		Username string `mapstructure:"KVAPI_DB_USER"`
+		Port     int    `mapstructure:"KVAPI_DB_PORT"`
+		SslMode  string `mapstructure:"KVAPI_DB_SSL"`
+		Host     string `mapstructure:"KVAPI_DB_HOST"`
+	}
+	if err := viper.ReadInConfig(); err != nil {
+		log.Println(err)
+		log.Fatal(fmt.Errorf("An error occurred when reading configuration from .env"))
+	}
+
+	var config Config
+	err := viper.Unmarshal(&config)
+	if err != nil {
+		log.Fatal(fmt.Errorf("An error occurred when reading configuration from .env"))
+	}
+	connStr := fmt.Sprintf("host=%s dbname=%s user=%s password=%s port=%d sslmode=%s",
+		config.Host, config.DbName, config.Username, config.Password, config.Port, config.SslMode)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db: %w", err)
