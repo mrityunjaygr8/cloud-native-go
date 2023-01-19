@@ -35,6 +35,6 @@ tasks:
     cmds:
       - docker exec -it postgres psql -U $DB_USER $DB_NAME
 
-  test:
+  jet:
     cmds:
-      - echo $TASK_YO
+      - jet -dsn=postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable -schema=public -path=./db/gen
