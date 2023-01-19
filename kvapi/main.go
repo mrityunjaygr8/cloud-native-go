@@ -131,7 +131,11 @@ func main() {
 		log.Println("Exiting Immediately")
 		os.Exit(1)
 	}()
-	_ = initializeTransactionLog()
+
+	err := initializeTransactionLog()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	r := mux.NewRouter()
 	r.HandleFunc("/v1/{key}", putHandler).Methods("PUT")
