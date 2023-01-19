@@ -17,19 +17,19 @@ tasks:
 
   migrateup:
     cmds:
-      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose up
+      - migrate -path db/migrations -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose up
 
   migratedown:
     cmds:
-      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose down
+      - migrate -path db/migrations -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose down
 
   migrateup1:
     cmds:
-      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose up 1
+      - migrate -path db/migrations -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose up 1
 
   migratedown1:
     cmds:
-      - migrate -path db/migration -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose down 1
+      - migrate -path db/migrations -database "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" -verbose down 1
 
   psql:
     cmds:
