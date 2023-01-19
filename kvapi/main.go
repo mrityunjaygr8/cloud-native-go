@@ -83,7 +83,8 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 func initializeTransactionLog() error {
 	var err error
 
-	logger, err = transactionlogger.NewFileTransactionLogger("transaction.log")
+	// logger, err = transactionlogger.NewFileTransactionLogger("transaction.log")
+	logger, err = transactionlogger.NewPostgresTransactionLogger()
 
 	if err != nil {
 		return fmt.Errorf("failed to create event logger: %w", err)
