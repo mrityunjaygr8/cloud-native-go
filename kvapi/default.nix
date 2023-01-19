@@ -1,10 +1,11 @@
-{ pkgs ? import <nixpkgs> { } }:
+{ pkgs ? import <nixpkgs> { }  }:
 pkgs.mkShell {
   # nativeBuildInputs is usually what you want -- tools you need to run
-  nativeBuildInputs = with pkgs; [
-    go
-    fish
-    go-migrate
-    go-task
+  nativeBuildInputs = [
+    pkgs.go
+    pkgs.fish
+    pkgs.go-migrate
+    pkgs.go-task
+    (pkgs.callPackage ./go-jet.nix {})
   ];
 }
